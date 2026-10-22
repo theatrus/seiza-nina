@@ -10,5 +10,5 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyMetadata("Homepage", "https://github.com/theatrus/seiza-nina")]
 [assembly: AssemblyMetadata("Tags", "plate solving,astrometry,seiza")]
 [assembly: AssemblyMetadata("ScreenshotURL", "https://raw.githubusercontent.com/theatrus/seiza-nina/main/docs/images/catalog-options.png")]
-[assembly: AssemblyMetadata("FeaturedImageURL", "https://raw.githubusercontent.com/theatrus/seiza-nina/main/docs/images/catalog-options.png")]
+[assembly: AssemblyMetadata("FeaturedImageURL", "https://raw.githubusercontent.com/theatrus/seiza-nina/main/docs/images/seiza-logo.png")]
 [assembly: AssemblyMetadata("LongDescription", "Seiza provides native, offline primary and blind plate solving through N.I.N.A.'s plugin solver API. Configure catalogs under Options > Plate Solving. Requires an upstream develop build containing isbeorn/nina#449.")]

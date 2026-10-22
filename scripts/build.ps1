@@ -57,6 +57,7 @@ try {
     New-Item -ItemType Directory -Force -Path $images | Out-Null
     Copy-Item -LiteralPath (Join-Path $repoRoot 'docs/images/catalog-options.png') -Destination $images -Force
     Copy-Item -LiteralPath (Join-Path $repoRoot 'docs/images/nina-solve-result.png') -Destination $images -Force
+    Copy-Item -LiteralPath (Join-Path $repoRoot 'docs/images/seiza-logo.png') -Destination $images -Force
     # Include upstream license/notice texts from the exact locked crate sources.
     $metadataText = & cargo metadata --locked --filter-platform x86_64-pc-windows-msvc --format-version 1
     if ($LASTEXITCODE -ne 0) { throw 'Could not resolve dependency license sources.' }

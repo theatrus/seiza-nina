@@ -20,11 +20,18 @@ namespace Seiza.Nina.Tests;
 [TestFixture, Apartment(ApartmentState.STA), NonParallelizable]
 public class IntegrationTests
 {
+    private TestData.DefaultCatalogScope defaults = null!;
+
+    [SetUp]
+    public void UseIsolatedSeizaDefaults() => defaults = new();
+
+    [TearDown]
+    public void RestoreEnvironment() => defaults.Dispose();
+
     [TestCase(false), TestCase(true)]
     public async Task SolvesThroughUpstreamFactory(bool blind)
     {
         var provider = new SeizaSolverProvider(TestData.Profile().Object);
-        provider.Settings.CatalogPath = TestData.Fixture;
         provider.Settings.MinimumScale = 8;
         provider.Settings.MaximumScale = 12;
         PlateSolverFactory.RegisterProviders([provider]);
@@ -57,16 +64,15 @@ public class IntegrationTests
     public void SettingsFollowProfileSwitchAndNotifyTheView()
     {
         var profile = TestData.Profile();
-        var settings = new SeizaSettings(profile.Object) { CatalogPath = "first", TimeLimitSeconds = 15 };
+        var settings = new SeizaSettings(profile.Object) { TimeLimitSeconds = 15 };
         var first = profile.Object.ActiveProfile.PluginSettings;
         var second = new PluginSettings();
-        second.SetValue(SeizaSettings.PluginId, nameof(SeizaSettings.CatalogPath), "second");
+        second.SetValue(SeizaSettings.PluginId, nameof(SeizaSettings.TimeLimitSeconds), 90.0);
         var changed = false;
         settings.PropertyChanged += (_, args) => changed |= string.IsNullOrEmpty(args.PropertyName);
         profile.SetupGet(x => x.ActiveProfile.PluginSettings).Returns(second);
         profile.Raise(x => x.ProfileChanged += null, EventArgs.Empty);
-        Assert.That(settings.CatalogPath, Is.EqualTo("second"));
-        Assert.That(settings.TimeLimitSeconds, Is.EqualTo(60));
+        Assert.That(settings.TimeLimitSeconds, Is.EqualTo(90));
         Assert.That(changed, Is.True);
         settings.TimeLimitSeconds = 90;
         profile.SetupGet(x => x.ActiveProfile.PluginSettings).Returns(first);
@@ -89,7 +95,8 @@ public class IntegrationTests
         Assert.That(provider.SupportsPrimary && provider.SupportsBlind, Is.True);
         Assert.That(manifest.Identifier, Is.EqualTo(SeizaSettings.PluginId.ToString()));
         Assert.That(((SeizaPlugin)manifest).Settings, Is.SameAs(((SeizaSolverProvider)provider).Settings));
-        Assert.That(resources["Seiza Plate Solver_Options"], Is.InstanceOf<DataTemplate>());
+        Assert.That(manifest.Name, Is.EqualTo("Seiza Plate Solver"));
+        Assert.That(resources[$"{manifest.Name}_Options"], Is.InstanceOf<DataTemplate>());
         var template = (DataTemplate)resources[new DataTemplateKey(provider.GetType())];
         var content = (FrameworkElement)template.LoadContent();
         content.DataContext = provider;
@@ -99,14 +106,17 @@ public class IntegrationTests
             window.Show();
             window.UpdateLayout();
             var settingsView = (SettingsView)((Grid)content).Children[0];
-            var textBox = (TextBox)settingsView.FindName("CatalogPath");
+            var textBox = (TextBox)settingsView.FindName("TimeLimit");
             var packages = (ComboBox)settingsView.FindName("Package");
             Assert.That(packages.SelectedItem, Is.EqualTo(((SeizaSolverProvider)provider).Settings.Catalogs.Packages[0]));
             Assert.That(((Button)settingsView.FindName("InstallButton")).Command, Is.Not.Null);
             Assert.That(textBox.GetBindingExpression(TextBox.TextProperty)!.HasError, Is.False);
-            ((SeizaSolverProvider)provider).Settings.CatalogPath = "C:\\test catalogs";
+            Assert.That(settingsView.FindName("CatalogPath"), Is.Null);
+            Assert.That(settingsView.FindName("IndexPath"), Is.Null);
+            Assert.That(settingsView.FindName("InstallDirectory"), Is.Null);
+            ((SeizaSolverProvider)provider).Settings.TimeLimitSeconds = 45;
             textBox.GetBindingExpression(TextBox.TextProperty)!.UpdateTarget();
-            Assert.That(textBox.Text, Is.EqualTo("C:\\test catalogs"));
+            Assert.That(textBox.Text, Is.EqualTo("45"));
         }
         finally { window.Close(); }
     }

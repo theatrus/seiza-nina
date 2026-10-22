@@ -7,8 +7,8 @@ namespace Seiza.Nina;
 
 internal interface ICatalogInstaller
 {
-    string Install(string directory, string package, IProgress<CatalogProgress> progress, CancellationToken cancellationToken);
-    CatalogAvailability Status(string catalogPath, string indexPath);
+    string Install(string package, IProgress<CatalogProgress> progress, CancellationToken cancellationToken);
+    CatalogAvailability Status();
 }
 
 public sealed record CatalogPackage(string Id, string Name, string Description);
@@ -17,7 +17,7 @@ internal sealed record CatalogProgress(string Message, ulong Downloaded = 0, ulo
 
 internal sealed record CatalogAvailability(string? StarCatalog, string? BlindIndex)
 {
-    public string Summary => StarCatalog is null ? "No star catalog found. Install a package below or select an existing catalog."
+    public string Summary => StarCatalog is null ? "No star catalog found. Install a package above to start solving."
         : BlindIndex is null ? $"Primary solving ready: {Path.GetFileName(StarCatalog)}. Install a blind package to enable blind solving."
         : $"Primary and blind solving ready: {Path.GetFileName(StarCatalog)} + {Path.GetFileName(BlindIndex)}.";
 }
@@ -26,7 +26,7 @@ internal sealed class NativeCatalogInstaller : ICatalogInstaller
 {
     private sealed record InstallResult(bool Success, string? Directory, string? Message);
 
-    public string Install(string directory, string package, IProgress<CatalogProgress> progress, CancellationToken cancellationToken)
+    public string Install(string package, IProgress<CatalogProgress> progress, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         using var signal = new CancelHandle(NativeMethods.CreateCancel());
@@ -47,7 +47,7 @@ internal sealed class NativeCatalogInstaller : ICatalogInstaller
             }
             catch (Exception) { /* A progress subscriber cannot interrupt native cleanup. */ }
         };
-        var response = NativeMethods.InstallCatalogs(JsonSerializer.Serialize(new { directory, package }, NativeSeizaEngine.Json), signal, callback, 0);
+        var response = NativeMethods.InstallCatalogs(JsonSerializer.Serialize(new { package }, NativeSeizaEngine.Json), signal, callback, 0);
         GC.KeepAlive(callback);
         var text = NativeSeizaEngine.ReadAndFree(response);
         cancellationToken.ThrowIfCancellationRequested();
@@ -59,9 +59,9 @@ internal sealed class NativeCatalogInstaller : ICatalogInstaller
         return result.Directory;
     }
 
-    public CatalogAvailability Status(string catalogPath, string indexPath)
+    public CatalogAvailability Status()
     {
-        var json = NativeMethods.CatalogStatus(JsonSerializer.Serialize(new { catalogPath, indexPath }, NativeSeizaEngine.Json));
+        var json = NativeMethods.CatalogStatus("{\"catalogPath\":\"\",\"indexPath\":\"\"}");
         return JsonSerializer.Deserialize<CatalogAvailability>(NativeSeizaEngine.ReadAndFree(json), NativeSeizaEngine.Json)
             ?? throw new InvalidDataException("Seiza returned no catalog status.");
     }

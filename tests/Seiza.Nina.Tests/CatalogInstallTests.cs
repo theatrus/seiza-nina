@@ -9,56 +9,40 @@ namespace Seiza.Nina.Tests;
 public class CatalogInstallTests
 {
     [Test]
-    public async Task InstallingSelectsTheDownloadedCatalogsAndReleasesOldMappings()
+    public async Task InstallingUsesSeizaDefaultsAndReleasesOldMappings()
     {
-        var profiles = TestData.Profile();
-        var settings = new SeizaSettings(profiles.Object) { CatalogInstallDirectory = Path.Combine(TestData.Root, "artifacts", "install-test") };
         var engine = new TrackingEngine();
         await using var host = new SeizaEngineHost(_ => engine);
         await host.SolveAsync([], 0, 0, TestData.Request(), TestData.Options, CancellationToken.None);
-        var installer = new FakeInstaller { InstallAction = (directory, _, token) => { Assert.That(engine.Disposed, Is.True); return directory; } };
-        var viewModel = new CatalogInstallerViewModel(settings, profiles.Object, host, installer);
+        var installer = new FakeInstaller { InstallAction = (package, token) => { Assert.That(engine.Disposed, Is.True); Assert.That(package, Is.EqualTo("standard")); return "native default directory"; } };
+        var viewModel = new CatalogInstallerViewModel(host, installer);
         await viewModel.InstallCommand.ExecuteAsync(null);
-        Assert.That(settings.CatalogPath, Is.EqualTo(settings.CatalogInstallDirectory));
-        Assert.That(settings.IndexPath, Is.Empty);
-        Assert.That(viewModel.Status, Does.Contain("This profile now uses"));
+        Assert.That(viewModel.Status, Does.Contain("automatically"));
+        Assert.That(viewModel.Status, Does.Not.Contain("native default directory"));
         Assert.That(viewModel.IsInstalling, Is.False);
         Assert.That(viewModel.Percent, Is.EqualTo(100));
     }
 
     [Test]
-    public async Task AProfileSwitchDuringInstallationDoesNotChangeTheNewProfilesPaths()
+    public void LegacyPluginPathsAreIgnoredInFavorOfSeizaDefaults()
     {
         var profiles = TestData.Profile();
-        var first = Guid.NewGuid();
-        profiles.SetupGet(x => x.ActiveProfile.Id).Returns(first);
-        var settings = new SeizaSettings(profiles.Object) { CatalogPath = "unchanged" };
-        await using var host = new SeizaEngineHost(_ => new TrackingEngine());
-        var installer = new FakeInstaller
-        {
-            InstallAction = (directory, _, _) =>
-            {
-                profiles.SetupGet(x => x.ActiveProfile.Id).Returns(Guid.NewGuid());
-                return directory;
-            }
-        };
-        var viewModel = new CatalogInstallerViewModel(settings, profiles.Object, host, installer);
-        await viewModel.InstallCommand.ExecuteAsync(null);
-        Assert.That(settings.CatalogPath, Is.EqualTo("unchanged"));
-        Assert.That(viewModel.Status, Does.Contain("active profile changed"));
+        foreach (var key in new[] { "CatalogPath", "IndexPath", "CatalogInstallDirectory" })
+            profiles.Object.ActiveProfile.PluginSettings.SetValue(SeizaSettings.PluginId, key, "obsolete custom path");
+        var settings = new SeizaSettings(profiles.Object);
+        Assert.That(settings.Snapshot().CatalogPath, Is.Empty);
+        Assert.That(settings.Snapshot().IndexPath, Is.Empty);
+        Assert.That(typeof(SeizaSettings).GetProperty("CatalogPath"), Is.Null);
+        Assert.That(typeof(SeizaSettings).GetProperty("CatalogInstallDirectory"), Is.Null);
     }
 
     [Test]
-    public async Task FailedInstallPreservesSelectedPathsAndShowsTheError()
+    public async Task FailedInstallShowsTheError()
     {
-        var profiles = TestData.Profile();
-        var settings = new SeizaSettings(profiles.Object) { CatalogPath = "old catalog", IndexPath = "old index" };
         await using var host = new SeizaEngineHost(_ => new TrackingEngine());
-        var installer = new FakeInstaller { InstallAction = (_, _, _) => throw new IOException("Test download error") };
-        var viewModel = new CatalogInstallerViewModel(settings, profiles.Object, host, installer);
+        var installer = new FakeInstaller { InstallAction = (_, _) => throw new IOException("Test download error") };
+        var viewModel = new CatalogInstallerViewModel(host, installer);
         await viewModel.InstallCommand.ExecuteAsync(null);
-        Assert.That(settings.CatalogPath, Is.EqualTo("old catalog"));
-        Assert.That(settings.IndexPath, Is.EqualTo("old index"));
         Assert.That(viewModel.Status, Does.Contain("Test download error"));
         Assert.That(viewModel.IsIdle, Is.True);
     }
@@ -66,34 +50,32 @@ public class CatalogInstallTests
     [Test]
     public async Task CancelCommandStopsTheInstallerWithoutChangingProfileSettings()
     {
-        var profiles = TestData.Profile();
-        var settings = new SeizaSettings(profiles.Object) { CatalogPath = "old catalog" };
         await using var host = new SeizaEngineHost(_ => new TrackingEngine());
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var installer = new FakeInstaller
         {
-            InstallAction = (directory, _, token) =>
+            InstallAction = (_, token) =>
             {
                 entered.SetResult();
                 token.WaitHandle.WaitOne();
                 token.ThrowIfCancellationRequested();
-                return directory;
+                return "native default";
             }
         };
-        var viewModel = new CatalogInstallerViewModel(settings, profiles.Object, host, installer);
+        var viewModel = new CatalogInstallerViewModel(host, installer);
         var installing = viewModel.InstallCommand.ExecuteAsync(null);
         await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
         viewModel.InstallCancelCommand.Execute(null);
         await installing;
-        Assert.That(settings.CatalogPath, Is.EqualTo("old catalog"));
         Assert.That(viewModel.Status, Does.Contain("cancelled"));
         Assert.That(viewModel.IsInstalling, Is.False);
     }
 
     [Test]
-    public void NativeCatalogDiscoveryUsesTheConfiguredFolder()
+    public void NativeCatalogDiscoveryUsesSeizasEnvironmentDefaults()
     {
-        var available = new NativeCatalogInstaller().Status(TestData.Fixture, "");
+        using var defaults = new TestData.DefaultCatalogScope();
+        var available = new NativeCatalogInstaller().Status();
         Assert.That(available.StarCatalog, Is.EqualTo(Path.Combine(TestData.Fixture, "stars.bin")));
         Assert.That(available.BlindIndex, Is.EqualTo(Path.Combine(TestData.Fixture, "blind-gaia16.idx")));
         Assert.That(available.Summary, Does.Contain("Primary and blind solving ready"));
@@ -118,11 +100,11 @@ public class CatalogInstallTests
 
     private sealed class FakeInstaller : ICatalogInstaller
     {
-        public Func<string, string, CancellationToken, string> InstallAction { get; init; } = (directory, _, _) => directory;
+        public Func<string, CancellationToken, string> InstallAction { get; init; } = (_, _) => "native default";
 
-        public string Install(string directory, string package, IProgress<CatalogProgress> progress, CancellationToken cancellationToken) => InstallAction(directory, package, cancellationToken);
+        public string Install(string package, IProgress<CatalogProgress> progress, CancellationToken cancellationToken) => InstallAction(package, cancellationToken);
 
-        public CatalogAvailability Status(string catalogPath, string indexPath) => new("stars-deep-gaia17.bin", "blind-gaia16.idx");
+        public CatalogAvailability Status() => new("stars-deep-gaia17.bin", "blind-gaia16.idx");
     }
 
     private sealed class TrackingEngine : ISeizaEngine

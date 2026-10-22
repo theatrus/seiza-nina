@@ -11,6 +11,29 @@ namespace Seiza.Nina.Tests;
 
 internal static class TestData
 {
+    internal sealed class DefaultCatalogScope : IDisposable
+    {
+        private readonly Dictionary<string, string?> previous = new();
+
+        public DefaultCatalogScope()
+        {
+            foreach (var name in new[] { "SEIZA_CATALOG_DIR", "SEIZA_STAR_DATA", "SEIZA_BLIND_INDEX" })
+            {
+                previous[name] = Environment.GetEnvironmentVariable(name);
+                Environment.SetEnvironmentVariable(name, name switch
+                {
+                    "SEIZA_STAR_DATA" => Path.Combine(Fixture, "stars.bin"),
+                    "SEIZA_BLIND_INDEX" => Path.Combine(Fixture, "blind-gaia16.idx"),
+                    _ => Fixture
+                });
+            }
+        }
+
+        public void Dispose()
+        {
+            foreach (var item in previous) Environment.SetEnvironmentVariable(item.Key, item.Value);
+        }
+    }
     internal static string Root
     {
         get

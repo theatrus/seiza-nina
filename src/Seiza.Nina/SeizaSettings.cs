@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
-using System.IO;
 using NINA.Profile;
 using NINA.Profile.Interfaces;
 
@@ -15,29 +14,11 @@ public sealed class SeizaSettings : INotifyPropertyChanged
     public SeizaSettings(IProfileService profileService)
     {
         options = new PluginOptionsAccessor(profileService, PluginId);
-        Catalogs = new CatalogInstallerViewModel(this, profileService, SeizaRuntime.Host, new NativeCatalogInstaller());
+        Catalogs = new CatalogInstallerViewModel(SeizaRuntime.Host, new NativeCatalogInstaller());
         WeakEventManager<IProfileService, EventArgs>.AddHandler(profileService, nameof(IProfileService.ProfileChanged), ProfileChanged);
     }
 
-    public string CatalogPath
-    {
-        get => options.GetValueString(nameof(CatalogPath), "");
-        set { options.SetValueString(nameof(CatalogPath), value?.Trim() ?? ""); Changed(); }
-    }
-
-    public string IndexPath
-    {
-        get => options.GetValueString(nameof(IndexPath), "");
-        set { options.SetValueString(nameof(IndexPath), value?.Trim() ?? ""); Changed(); }
-    }
-
     public CatalogInstallerViewModel Catalogs { get; }
-
-    public string CatalogInstallDirectory
-    {
-        get => options.GetValueString(nameof(CatalogInstallDirectory), Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Seiza", "catalogs"));
-        set { options.SetValueString(nameof(CatalogInstallDirectory), value?.Trim() ?? ""); Changed(); }
-    }
 
     public double TimeLimitSeconds
     {
@@ -65,7 +46,9 @@ public sealed class SeizaSettings : INotifyPropertyChanged
 
     internal SolveOptions Snapshot()
     {
-        var value = new SolveOptions(CatalogPath, IndexPath, TimeLimitSeconds, ScaleTolerance, MinimumScale, MaximumScale);
+        // Catalog discovery and installation use Seiza's own defaults. Ignore
+        // obsolete plugin path overrides retained in profiles from earlier builds.
+        var value = new SolveOptions("", "", TimeLimitSeconds, ScaleTolerance, MinimumScale, MaximumScale);
         value.Validate();
         return value;
     }

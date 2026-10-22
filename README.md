@@ -14,8 +14,9 @@ not supported. This plugin does not require a fork of N.I.N.A.
 
 ![Seiza plugin settings with catalog package selection, installation controls and solve options](docs/images/catalog-options.png)
 
-The actual plugin-page template rendered in the UI test harness, with an
-example installation folder. The same controls are embedded in Plate Solving options.
+The plugin page in the full upstream N.I.N.A. application after an end-to-end
+test and Compact catalog installation. The same controls are embedded in
+Plate Solving options.
 
 ## Install
 
@@ -31,7 +32,7 @@ example installation folder. The same controls are embedded in Plate Solving opt
    the primary solver, blind solver, or both. Its settings appear underneath
    the selectors, once when both roles select Seiza.
 4. Open the **Seiza Plate Solver** plugin page, or use the embedded settings
-   in Plate Solving options. Choose a catalog package and installation folder,
+   in Plate Solving options. Choose a catalog package,
    then click **Install / update catalogs**. The plugin includes the downloader
    and native solver; no separate CLI is required.
 
@@ -46,17 +47,17 @@ installation progress, and support cancellation. Downloads use Seiza's shared
 cache, with SHA-256 verification before publishing catalog files. New files
 are staged before atomically replacing individual existing files. Solves wait
 while installation runs, so the plugin can release its catalog mappings safely.
-Completed cache downloads are kept for reuse. A completed install selects its
-folder for the active profile; switching profiles during an install leaves the
-new profile's selections unchanged. **Refresh** checks locally available catalogs.
+Completed cache downloads are kept for reuse. Installation and solving use
+Seiza's standard shared catalog location automatically. There are no plugin
+path fields or per-profile catalog overrides. **Refresh** checks locally available catalogs.
 
 Catalogs can also be shared with other Seiza applications or installed with
 the optional [Seiza CLI](https://github.com/theatrus/seiza/releases).
-Leave the catalog path
-blank for Seiza's normal discovery, or enter a catalog directory or star
-tile file explicitly. The deepest available star catalog is selected. For
-blind solves the adapter opens the index beside that catalog; an explicit
-index file or directory overrides discovery. A primary solve needs only
+The plugin calls Seiza's native default-directory and discovery functions,
+including its standard `SEIZA_CATALOG_DIR`, `SEIZA_STAR_DATA` and
+`SEIZA_BLIND_INDEX` environment overrides. Old plugin path settings are ignored.
+The deepest available star catalog is selected. For blind solves the adapter
+opens the index beside that catalog. A primary solve needs only
 the star catalog. A blind solve also needs the prebuilt blind index;
 the plugin does not build an all-sky index during a solve.
 
@@ -94,6 +95,33 @@ factory, MEF composition, N.I.N.A.'s real plugin assembly load context,
 embedded WPF settings, profiles, cancellation and shutdown. They do not
 operate astronomy equipment or need external catalogs.
 
+### Full N.I.N.A. end-to-end test
+
+With N.I.N.A.'s external native/camera SDK assets restored in the source checkout,
+run from an interactive Windows desktop using PowerShell 7.4 or newer:
+
+```powershell
+./scripts/test-nina.ps1 -InstallCatalogs
+# Add -KeepOpen to leave N.I.N.A. open for inspection.
+# Add -NinaSourcePath C:\src\nina to use another prepared upstream checkout.
+```
+
+This optional test builds and starts the real `NINA.App`, composes its normal
+main window and lets its plugin loader discover the deployed plugin. It uses
+an isolated application directory, profile, database and Seiza catalog directory
+under `artifacts/nina-e2e/`. It writes and loads a synthetic FITS image through
+N.I.N.A., tests primary/blind solving, a primary miss, automatic blind failover,
+cancellation recovery, and the actual image **Plate Solve** command/result window.
+It also verifies the live plugin page has working installation controls and no
+path fields. JSON results and WPF-rendered screenshots are saved beside its logs.
+`-InstallCatalogs` additionally downloads/verifies/installs the real 26 MB Compact
+catalog into that isolated default location; it reuses Seiza's normal download cache.
+
+The full app test requires vendor SDK files absent from a plain N.I.N.A. Git clone,
+so it runs separately from the ordinary build/CI suite. It does not connect equipment.
+
+![N.I.N.A. plate-solve result for the artificial end-to-end test field](docs/images/nina-solve-result.png)
+
 ## Implementation
 
 The MEF export implements `IPlateSolverProvider` with the stable provider ID
@@ -104,9 +132,8 @@ The C# adapter passes N.I.N.A.'s linear 16-bit mono/Bayer pixels directly
 to a small Rust bridge. Seiza 0.40.1 owns detection, matching, WCS fitting,
 catalog resolution and memory mapping. No temporary FITS files or solver
 processes are created. Catalog mappings are reused, the blind index opens
-on first use, and work is serialized across both solver roles. Changing
-catalog paths replaces the cached engine on the next solve. The built-in
-installer also invalidates that cache. Replacing catalog files externally
+on first use, and work is serialized across both solver roles. The built-in
+installer invalidates that cache. Replacing catalog files externally
 requires restarting N.I.N.A.
 
 Primary solves use N.I.N.A.'s J2000 coordinates, search radius and effective

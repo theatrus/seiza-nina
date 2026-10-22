@@ -1693,7 +1693,7 @@ checksum = "43903045bca0b629b5bda14bfda11b26758bbb3fd51d24dedb253c0155020f1d"
 
 [[package]]
 name = "seiza-nina-native"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "rayon",
  "seiza",

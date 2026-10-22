@@ -15,7 +15,8 @@ type ProgressCallback = Option<unsafe extern "C" fn(*const c_char, *mut c_void)>
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct InstallRequest {
-    directory: PathBuf,
+    #[serde(default)]
+    directory: Option<PathBuf>,
     package: String,
 }
 
@@ -82,7 +83,10 @@ async fn install_with_manager(
 ) -> Result<PathBuf, String> {
     check_cancel(&flag)?;
     let set = selection(&request.package)?;
-    if !request.directory.is_absolute() {
+    let directory = request
+        .directory
+        .unwrap_or_else(seiza::data_paths::default_catalog_dir);
+    if !directory.is_absolute() {
         return Err("Choose an absolute catalog installation directory".into());
     }
     let download = async {
@@ -102,12 +106,12 @@ async fn install_with_manager(
         () = cancelled(&flag) => return Err("Catalog installation cancelled".into()),
     };
     check_cancel(&flag)?;
-    tokio::fs::create_dir_all(&request.directory)
+    tokio::fs::create_dir_all(&directory)
         .await
         .map_err(|e| e.to_string())?;
     let stage = tempfile::Builder::new()
         .prefix(".seiza-install-")
-        .tempdir_in(&request.directory)
+        .tempdir_in(&directory)
         .map_err(|e| e.to_string())?;
     // Complete the current filesystem operation before observing cancellation.
     // Materializing to a private sibling keeps existing catalogs intact on copy errors.
@@ -119,12 +123,12 @@ async fn install_with_manager(
     for source in paths {
         check_cancel(&flag)?;
         let name = source.file_name().ok_or("Missing catalog file name")?;
-        let target = request.directory.join(name);
+        let target = directory.join(name);
         seiza_download::bundle::replace_file(&source, &target)
             .await
             .map_err(|e| e.to_string())?;
     }
-    Ok(request.directory)
+    Ok(directory)
 }
 
 /// # Safety
@@ -252,7 +256,7 @@ mod tests {
         let result = runtime.block_on(install_with_manager(
             manager,
             InstallRequest {
-                directory: output.clone(),
+                directory: Some(output.clone()),
                 package: "standard".into(),
             },
             Arc::default(),
@@ -282,7 +286,7 @@ mod tests {
             let result = runtime.block_on(install_with_manager(
                 manager,
                 InstallRequest {
-                    directory: output.clone(),
+                    directory: Some(output.clone()),
                     package: "compact".into(),
                 },
                 Arc::new(AtomicBool::new(cancel)),

@@ -34,6 +34,9 @@ internal static class Program
     {
         var assemblyPath = Path.GetFullPath(args[0]);
         var fixture = Path.GetFullPath(args[1]);
+        Environment.SetEnvironmentVariable("SEIZA_CATALOG_DIR", fixture);
+        Environment.SetEnvironmentVariable("SEIZA_STAR_DATA", Path.Combine(fixture, "stars.bin"));
+        Environment.SetEnvironmentVariable("SEIZA_BLIND_INDEX", Path.Combine(fixture, "blind-gaia16.idx"));
         var contextType = typeof(PluginLoader).GetNestedType("PluginAssemblyLoadContext", BindingFlags.NonPublic)!;
         var context = (AssemblyLoadContext)Activator.CreateInstance(contextType, "Seiza smoke test", assemblyPath, false)!;
         var assembly = context.LoadFromAssemblyPath(assemblyPath);
@@ -48,23 +51,19 @@ internal static class Program
         await manifest.Initialize();
         var provider = extensions.GetExportedValue<IPlateSolverProvider>()!;
         var settings = provider.GetType().GetProperty("Settings")!.GetValue(provider)!;
-        settings.GetType().GetProperty("CatalogPath")!.SetValue(settings, fixture);
         settings.GetType().GetProperty("MinimumScale")!.SetValue(settings, 8.0);
         settings.GetType().GetProperty("MaximumScale")!.SetValue(settings, 12.0);
         var resources = extensions.GetExportedValue<ResourceDictionary>()!;
         if (args.Length > 2)
         {
-            // Render the actual plugin-page template, with sample destination text
-            // and initial state. No downloads or user profile changes are performed.
-            settings.GetType().GetProperty("CatalogInstallDirectory")!.SetValue(settings, @"D:\Astronomy\Seiza\catalogs");
-            settings.GetType().GetProperty("CatalogPath")!.SetValue(settings, "");
+            // Render the actual plugin-page template in its initial state.
+            // No downloads or user profile changes are performed.
             settings.GetType().GetProperty("MinimumScale")!.SetValue(settings, 0.1);
             settings.GetType().GetProperty("MaximumScale")!.SetValue(settings, 20.0);
             var pluginTemplate = (DataTemplate)resources["Seiza Plate Solver_Options"];
             var pluginView = (FrameworkElement)pluginTemplate.LoadContent();
             pluginView.DataContext = manifest;
             RenderSettings(pluginView, args[2]);
-            settings.GetType().GetProperty("CatalogPath")!.SetValue(settings, fixture);
             settings.GetType().GetProperty("MinimumScale")!.SetValue(settings, 8.0);
             settings.GetType().GetProperty("MaximumScale")!.SetValue(settings, 12.0);
         }

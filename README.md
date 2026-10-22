@@ -12,6 +12,11 @@ A version number alone does not establish compatibility: an earlier binary
 with the same number can lack the new interfaces. Stable N.I.N.A. 3.2 is
 not supported. This plugin does not require a fork of N.I.N.A.
 
+![Seiza plugin settings with catalog package selection, installation controls and solve options](docs/images/catalog-options.png)
+
+The actual plugin-page template rendered in the UI test harness, with an
+example installation folder. The same controls are embedded in Plate Solving options.
+
 ## Install
 
 1. Build the plugin below, or download the Windows artifact from this
@@ -25,11 +30,29 @@ not supported. This plugin does not require a fork of N.I.N.A.
 3. Restart N.I.N.A. In **Options > Plate Solving**, choose **Seiza** for
    the primary solver, blind solver, or both. Its settings appear underneath
    the selectors, once when both roles select Seiza.
-4. Install the separate [Seiza CLI](https://github.com/theatrus/seiza/releases)
-   and run `seiza setup` to install solver catalogs. The CLI is only needed
-   for catalog setup; the plugin bundles its native solver.
+4. Open the **Seiza Plate Solver** plugin page, or use the embedded settings
+   in Plate Solving options. Choose a catalog package and installation folder,
+   then click **Install / update catalogs**. The plugin includes the downloader
+   and native solver; no separate CLI is required.
 
-Catalogs are shared with other Seiza applications. Leave the catalog path
+| Catalog package | Contents | Approximate installed size |
+| --- | --- | --- |
+| Standard | Gaia G17 stars and the blind index; recommended for both solver roles | 3.2 GB |
+| Compact | Tycho-2 stars for primary solving in wider fields; no blind index | 26 MB |
+| Deep | Gaia G20 stars and the blind index for faint, narrow fields | 10.3 GB |
+
+Install controls show the current file, downloaded bytes, verification and
+installation progress, and support cancellation. Downloads use Seiza's shared
+cache, with SHA-256 verification before publishing catalog files. New files
+are staged before atomically replacing individual existing files. Solves wait
+while installation runs, so the plugin can release its catalog mappings safely.
+Completed cache downloads are kept for reuse. A completed install selects its
+folder for the active profile; switching profiles during an install leaves the
+new profile's selections unchanged. **Refresh** checks locally available catalogs.
+
+Catalogs can also be shared with other Seiza applications or installed with
+the optional [Seiza CLI](https://github.com/theatrus/seiza/releases).
+Leave the catalog path
 blank for Seiza's normal discovery, or enter a catalog directory or star
 tile file explicitly. The deepest available star catalog is selected. For
 blind solves the adapter opens the index beside that catalog; an explicit
@@ -82,8 +105,9 @@ to a small Rust bridge. Seiza 0.40.1 owns detection, matching, WCS fitting,
 catalog resolution and memory mapping. No temporary FITS files or solver
 processes are created. Catalog mappings are reused, the blind index opens
 on first use, and work is serialized across both solver roles. Changing
-catalog paths replaces the cached engine on the next solve. Replacing
-catalog files in place requires restarting N.I.N.A.
+catalog paths replaces the cached engine on the next solve. The built-in
+installer also invalidates that cache. Replacing catalog files externally
+requires restarting N.I.N.A.
 
 Primary solves use N.I.N.A.'s J2000 coordinates, search radius and effective
 pixel size (including capture binning). They return an unsuccessful result
@@ -95,13 +119,18 @@ are restored to original pixel coordinates before fitting, so output scale
 remains in captured-image pixels. Initial solutions are linear TAN without
 SIP distortion fitting.
 
-The native solver uses up to four worker threads. Cancellation and deadlines
+The native solver uses all available logical CPU cores. Cancellation and deadlines
 are cooperative: decoding is unnecessary, averaging checks each row, and
 Seiza checks between search stages. Detection and initial catalog/index
 mapping cannot be interrupted mid-operation, so cancellation can take one
 stage to return. Teardown cancels active and queued solves before freeing
 the engine. Only star-confirmed solutions are returned; image header WCS
 is never accepted as a successful solve by itself.
+
+The manifest and solver provider share profile settings across N.I.N.A.'s
+separate MEF containers. Both page templates bind to the same catalog installer.
+Catalog installation uses the published `seiza-download` 0.9.0 manifest, cache,
+transport and verification APIs; the plugin selects only solver datasets.
 
 The result adapter uses N.I.N.A.'s `WorldCoordinateSystem` and the same
 position-angle/parity convention as its ASTAP adapter. Tests cover these

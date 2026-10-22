@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using System.IO;
 using NINA.Profile;
 using NINA.Profile.Interfaces;
 
@@ -14,6 +15,7 @@ public sealed class SeizaSettings : INotifyPropertyChanged
     public SeizaSettings(IProfileService profileService)
     {
         options = new PluginOptionsAccessor(profileService, PluginId);
+        Catalogs = new CatalogInstallerViewModel(this, profileService, SeizaRuntime.Host, new NativeCatalogInstaller());
         WeakEventManager<IProfileService, EventArgs>.AddHandler(profileService, nameof(IProfileService.ProfileChanged), ProfileChanged);
     }
 
@@ -27,6 +29,14 @@ public sealed class SeizaSettings : INotifyPropertyChanged
     {
         get => options.GetValueString(nameof(IndexPath), "");
         set { options.SetValueString(nameof(IndexPath), value?.Trim() ?? ""); Changed(); }
+    }
+
+    public CatalogInstallerViewModel Catalogs { get; }
+
+    public string CatalogInstallDirectory
+    {
+        get => options.GetValueString(nameof(CatalogInstallDirectory), Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Seiza", "catalogs"));
+        set { options.SetValueString(nameof(CatalogInstallDirectory), value?.Trim() ?? ""); Changed(); }
     }
 
     public double TimeLimitSeconds
@@ -64,7 +74,11 @@ public sealed class SeizaSettings : INotifyPropertyChanged
 
     private void Changed([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new(name));
 
-    private void ProfileChanged(object? sender, EventArgs args) => Changed("");
+    private void ProfileChanged(object? sender, EventArgs args)
+    {
+        Catalogs.ProfileChanged();
+        Changed("");
+    }
 }
 
 internal sealed record SolveOptions(string CatalogPath, string IndexPath, double TimeLimitSeconds,

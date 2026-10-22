@@ -1,4 +1,5 @@
 //! Thin host adapter. Detection, catalog access and all astrometry belong to Seiza.
+mod catalogs;
 use seiza::blind::{BlindIndex, BlindParams, solve_blind_with_limits};
 use seiza::catalog::tiles::TileCatalog;
 use seiza::solve::{SolveHint, SolveLimits, solve_with_limits};
@@ -101,9 +102,7 @@ impl Engine {
         } else {
             seiza::data_paths::blind_index_beside(None, &path).map_err(|e| e.to_string())?
         };
-        let threads = std::thread::available_parallelism()
-            .map_or(1, |n| n.get())
-            .min(4);
+        let threads = std::thread::available_parallelism().map_or(1, |n| n.get());
         let pool = rayon::ThreadPoolBuilder::new()
             .num_threads(threads)
             .build()
@@ -497,6 +496,14 @@ mod tests {
             .err()
             .unwrap();
         assert!(error.contains("does not exist"));
+    }
+
+    #[test]
+    fn solving_pool_uses_all_available_cores() {
+        assert_eq!(
+            engine().pool.current_num_threads(),
+            std::thread::available_parallelism().map_or(1, |n| n.get())
+        );
     }
 
     #[test]

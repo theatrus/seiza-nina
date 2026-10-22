@@ -3,29 +3,9 @@
                     xmlns:local="clr-namespace:Seiza.Nina"
                     x:Class="Seiza.Nina.Options">
     <DataTemplate DataType="{x:Type local:SeizaSolverProvider}">
-        <StackPanel Margin="0,8" MaxWidth="720" HorizontalAlignment="Left">
-            <TextBlock Text="Seiza plate solver" FontWeight="Bold" Margin="0,0,0,8" />
-            <TextBlock TextWrapping="Wrap" Text="Uses local Seiza catalogs. Leave paths blank to use catalogs installed by seiza setup. The same settings apply to primary and blind solving." Margin="0,0,0,12" />
-            <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="220" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <Label Content="Catalog file or folder" Target="{Binding ElementName=CatalogPath}" />
-                <TextBox x:Name="CatalogPath" Grid.Column="1" Margin="0,3" MinWidth="300" Text="{Binding Settings.CatalogPath, UpdateSourceTrigger=LostFocus}" />
-                <Label Grid.Row="1" Content="Blind index file or folder" Target="{Binding ElementName=IndexPath}" />
-                <TextBox x:Name="IndexPath" Grid.Row="1" Grid.Column="1" Margin="0,3" Text="{Binding Settings.IndexPath, UpdateSourceTrigger=LostFocus}" />
-                <Label Grid.Row="2" Content="Time limit (seconds)" Target="{Binding ElementName=TimeLimit}" />
-                <TextBox x:Name="TimeLimit" Grid.Row="2" Grid.Column="1" Margin="0,3" Text="{Binding Settings.TimeLimitSeconds, ValidatesOnExceptions=True}" />
-                <Label Grid.Row="3" Content="Primary scale tolerance (0–1)" Target="{Binding ElementName=Tolerance}" />
-                <TextBox x:Name="Tolerance" Grid.Row="3" Grid.Column="1" Margin="0,3" Text="{Binding Settings.ScaleTolerance, ValidatesOnExceptions=True}" />
-                <Label Grid.Row="4" Content="Blind minimum scale (arcsec/px)" Target="{Binding ElementName=MinimumScale}" />
-                <TextBox x:Name="MinimumScale" Grid.Row="4" Grid.Column="1" Margin="0,3" Text="{Binding Settings.MinimumScale, ValidatesOnExceptions=True}" />
-                <Label Grid.Row="5" Content="Blind maximum scale (arcsec/px)" Target="{Binding ElementName=MaximumScale}" />
-                <TextBox x:Name="MaximumScale" Grid.Row="5" Grid.Column="1" Margin="0,3" Text="{Binding Settings.MaximumScale, ValidatesOnExceptions=True}" />
-            </Grid>
-            <TextBlock Margin="0,12,0,0" TextWrapping="Wrap" Text="Primary solving uses N.I.N.A.'s J2000 pointing, search radius and optical scale. N.I.N.A. controls blind failover. Catalogs stay loaded until their paths change or the plugin shuts down." />
-        </StackPanel>
+        <Grid><local:SettingsView DataContext="{Binding Settings}" /></Grid>
+    </DataTemplate>
+    <DataTemplate x:Key="Seiza Plate Solver_Options">
+        <Grid><local:SettingsView DataContext="{Binding Settings}" /></Grid>
     </DataTemplate>
 </ResourceDictionary>

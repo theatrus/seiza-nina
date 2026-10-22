@@ -42,7 +42,7 @@ internal sealed class NativeSeizaEngine : ISeizaEngine
         return JsonSerializer.Deserialize<SolveResponse>(json, Json) ?? throw new InvalidDataException("Seiza returned no solve response.");
     }
 
-    private static string ReadAndFree(nint value)
+    internal static string ReadAndFree(nint value)
     {
         if (value == 0) return "No native response";
         try { return Marshal.PtrToStringUTF8(value) ?? "Invalid native response"; }
@@ -105,4 +105,14 @@ internal static class NativeMethods
 
     [DllImport(Library, EntryPoint = "seiza_nina_cancel_free", CallingConvention = CallingConvention.Cdecl)]
     internal static extern void FreeCancel(nint signal);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    internal delegate void CatalogProgress(nint json, nint context);
+
+    [DllImport(Library, EntryPoint = "seiza_nina_install_catalogs", CallingConvention = CallingConvention.Cdecl)]
+    internal static extern nint InstallCatalogs([MarshalAs(UnmanagedType.LPUTF8Str)] string request, CancelHandle cancel,
+        CatalogProgress progress, nint context);
+
+    [DllImport(Library, EntryPoint = "seiza_nina_catalog_status", CallingConvention = CallingConvention.Cdecl)]
+    internal static extern nint CatalogStatus([MarshalAs(UnmanagedType.LPUTF8Str)] string options);
 }

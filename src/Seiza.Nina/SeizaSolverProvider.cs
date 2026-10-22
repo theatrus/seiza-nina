@@ -10,7 +10,7 @@ public sealed class SeizaSolverProvider : IPlateSolverProvider
     [ImportingConstructor]
     public SeizaSolverProvider(IProfileService profileService)
     {
-        Settings = new SeizaSettings(profileService);
+        Settings = SeizaRuntime.SettingsFor(profileService);
     }
 
     public string Id => "fyi.seiza.nina.plate-solver";

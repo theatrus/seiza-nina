@@ -53,6 +53,9 @@ try {
     foreach ($name in @('README.md', 'LICENSE', 'THIRD-PARTY-NOTICES.md')) {
         Copy-Item -LiteralPath (Join-Path $repoRoot $name) -Destination $stage -Force
     }
+    $images = Join-Path $stage 'docs/images'
+    New-Item -ItemType Directory -Force -Path $images | Out-Null
+    Copy-Item -LiteralPath (Join-Path $repoRoot 'docs/images/catalog-options.png') -Destination $images -Force
     # Include upstream license/notice texts from the exact locked crate sources.
     $metadataText = & cargo metadata --locked --filter-platform x86_64-pc-windows-msvc --format-version 1
     if ($LASTEXITCODE -ne 0) { throw 'Could not resolve dependency license sources.' }
@@ -83,7 +86,7 @@ try {
     $version = [System.Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $stage 'Seiza.Nina.dll')).FileVersion
     $zipName = "seiza-nina-$version-win-x64.zip"
     $archive = Join-Path $repoRoot "artifacts/$zipName"
-    $files = @('Seiza.Nina.dll', 'seiza_nina_native.dll', 'README.md', 'LICENSE', 'THIRD-PARTY-NOTICES.md', 'THIRD-PARTY-LICENSES.txt') | ForEach-Object { Join-Path $stage $_ }
+    $files = @('Seiza.Nina.dll', 'seiza_nina_native.dll', 'README.md', 'LICENSE', 'THIRD-PARTY-NOTICES.md', 'THIRD-PARTY-LICENSES.txt', 'docs') | ForEach-Object { Join-Path $stage $_ }
     Compress-Archive -LiteralPath $files -DestinationPath $archive -Force
     $checksum = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
     "$checksum  $zipName" | Set-Content -LiteralPath (Join-Path $repoRoot 'artifacts/SHA256SUMS.txt') -Encoding utf8NoBOM

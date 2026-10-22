@@ -1,0 +1,62 @@
+<UserControl x:Class="Seiza.Nina.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel Margin="8" MaxWidth="780" HorizontalAlignment="Left">
+        <TextBlock Text="Seiza plate solver" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,6" />
+        <TextBlock TextWrapping="Wrap" Margin="0,0,0,16"
+                   Text="Local primary and blind plate solving. Uses all available CPU cores; catalogs stay loaded between solves." />
+        <GroupBox Header="Install catalogs" Padding="12" Margin="0,0,0,16">
+            <StackPanel>
+                <StackPanel IsEnabled="{Binding Catalogs.IsIdle}">
+                    <Label Content="Catalog package" Target="{Binding ElementName=Package}" Padding="0,0,0,4" />
+                    <ComboBox x:Name="Package" ItemsSource="{Binding Catalogs.Packages}" SelectedItem="{Binding Catalogs.SelectedPackage}"
+                              DisplayMemberPath="Name" Margin="0,0,0,6" />
+                    <TextBlock Text="{Binding Catalogs.Package.Description}" TextWrapping="Wrap" Margin="0,0,0,12" />
+                    <Label Content="Installation folder" Target="{Binding ElementName=InstallDirectory}" Padding="0,0,0,4" />
+                    <DockPanel Margin="0,0,0,12">
+                        <Button Content="Browse…" DockPanel.Dock="Right" Margin="8,0,0,0" Padding="12,4" Command="{Binding Catalogs.BrowseInstallDirectoryCommand}" />
+                        <TextBox x:Name="InstallDirectory" Text="{Binding CatalogInstallDirectory, UpdateSourceTrigger=PropertyChanged}" MinWidth="280" />
+                    </DockPanel>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <Button x:Name="InstallButton" Content="Install / update catalogs" Padding="14,6" Command="{Binding Catalogs.InstallCommand}" />
+                    <Button x:Name="CancelInstallButton" Content="Cancel" Padding="14,6" Margin="8,0,0,0" Command="{Binding Catalogs.InstallCancelCommand}" />
+                </StackPanel>
+                <ProgressBar Height="6" Minimum="0" Maximum="100" Value="{Binding Catalogs.Percent}" IsIndeterminate="{Binding Catalogs.IsIndeterminate}" Margin="0,0,0,8" />
+                <TextBlock Text="{Binding Catalogs.Status}" TextWrapping="Wrap" />
+            </StackPanel>
+        </GroupBox>
+        <GroupBox Header="Active catalogs" Padding="12" Margin="0,0,0,16">
+            <StackPanel>
+                <TextBlock TextWrapping="Wrap" Text="Leave paths blank to discover existing Seiza catalogs. A completed install selects its folder for this profile." Margin="0,0,0,10" />
+                <Grid IsEnabled="{Binding Catalogs.IsIdle}">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="210" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <Label Content="Catalog file or folder" Target="{Binding ElementName=CatalogPath}" />
+                    <TextBox x:Name="CatalogPath" Grid.Column="1" Margin="0,3" MinWidth="300" Text="{Binding CatalogPath, UpdateSourceTrigger=PropertyChanged}" />
+                    <Label Grid.Row="1" Content="Blind index file or folder" Target="{Binding ElementName=IndexPath}" />
+                    <TextBox x:Name="IndexPath" Grid.Row="1" Grid.Column="1" Margin="0,3" Text="{Binding IndexPath, UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
+                <DockPanel Margin="0,8,0,0">
+                    <Button Content="Refresh" DockPanel.Dock="Right" Padding="12,4" Margin="10,0,0,0" Command="{Binding Catalogs.RefreshCommand}" />
+                    <TextBlock Text="{Binding Catalogs.CatalogStatus}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                </DockPanel>
+            </StackPanel>
+        </GroupBox>
+        <GroupBox Header="Solve settings" Padding="12">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="270" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <Label Content="Time limit (seconds)" Target="{Binding ElementName=TimeLimit}" />
+                <TextBox x:Name="TimeLimit" Grid.Column="1" Margin="0,3" Text="{Binding TimeLimitSeconds, ValidatesOnExceptions=True}" />
+                <Label Grid.Row="1" Content="Primary scale tolerance (0–1)" Target="{Binding ElementName=Tolerance}" />
+                <TextBox x:Name="Tolerance" Grid.Row="1" Grid.Column="1" Margin="0,3" Text="{Binding ScaleTolerance, ValidatesOnExceptions=True}" />
+                <Label Grid.Row="2" Content="Blind minimum scale (arcsec/px)" Target="{Binding ElementName=MinimumScale}" />
+                <TextBox x:Name="MinimumScale" Grid.Row="2" Grid.Column="1" Margin="0,3" Text="{Binding MinimumScale, ValidatesOnExceptions=True}" />
+                <Label Grid.Row="3" Content="Blind maximum scale (arcsec/px)" Target="{Binding ElementName=MaximumScale}" />
+                <TextBox x:Name="MaximumScale" Grid.Row="3" Grid.Column="1" Margin="0,3" Text="{Binding MaximumScale, ValidatesOnExceptions=True}" />
+            </Grid>
+        </GroupBox>
+        <TextBlock Margin="0,12,0,0" TextWrapping="Wrap" Text="N.I.N.A. controls capture, blind failover, centering and mount synchronization. These settings apply to both solver roles and follow the active profile." />
+    </StackPanel>
+</UserControl>

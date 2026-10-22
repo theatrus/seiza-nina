@@ -1,0 +1,6 @@
+{
+  "repository": "https://github.com/isbeorn/nina.git",
+  "ref": "83e4a4fc4a739a1a174a4ad3262f5cdc34b2541b",
+  "minimumApplicationVersion": "3.3.0.1068",
+  "providerApi": "https://github.com/isbeorn/nina/pull/449"
+}

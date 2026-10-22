@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Seiza.Nina/Seiza.Nina.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Seiza.Nina.Smoke/Seiza.Nina.Smoke.csproj" />
+    <Project Path="tests/Seiza.Nina.Tests/Seiza.Nina.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,7 @@
+.deps/
+**/bin/
+**/obj/
+target/
+artifacts/
+.vs/
+*.user

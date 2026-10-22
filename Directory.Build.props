@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <Deterministic>true</Deterministic>
+    <NinaSourcePath Condition="'$(NinaSourcePath)' == ''">$(MSBuildThisFileDirectory).deps\nina</NinaSourcePath>
+  </PropertyGroup>
+</Project>

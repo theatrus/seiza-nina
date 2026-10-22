@@ -22,7 +22,9 @@ Catalogs are discovered automatically; solve settings follow the active profile.
 | Compact | Tycho-2; wide-field primary solving only | 26 MB |
 | Deep | Gaia G20 + blind index; faint, narrow fields | 10.3 GB |
 
-![Seiza plugin settings in N.I.N.A.](docs/images/catalog-options.png)
+![Seiza v0.3.1 plugin settings in N.I.N.A.](docs/images/catalog-options.png)
+
+![Plate-solve result in N.I.N.A.](docs/images/nina-solve-result.png)
 
 ## Build and test
 
